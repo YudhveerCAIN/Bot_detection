@@ -14,7 +14,7 @@ export default function App() {
   // Poll exactly as before
   const fetchData = async () => {
     try {
-      const [o, s, r] = await Promise.all([
+      const [o, s, r, p] = await Promise.all([
         API.get("/analytics/overview"),
         API.get("/analytics/sites"),
         API.get("/analytics/recent-detections"),
