@@ -25,15 +25,12 @@ if os.path.isdir(_static_dir):
 # -------------------------
 # CORS Configuration
 # -------------------------
-# Set ALLOWED_ORIGINS env var on Render as comma-separated URLs
-# e.g. https://your-dashboard.netlify.app,https://your-target-site.netlify.app
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
-ALLOWED_ORIGINS = [o.strip() for o in _raw_origins.split(",")] if _raw_origins != "*" else ["*"]
-
+# Allow all origins so any site can embed the script without CORS errors.
+# NOTE: 'allow_credentials' MUST be False when 'allow_origins' is ['*']
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

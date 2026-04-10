@@ -18,15 +18,18 @@
 (function () {
   "use strict";
 
-  // ─── Config (read from window globals set BEFORE this script loads) ─────────
-  var API_URL    = window.BOT_API_URL  || null;
-  var SITE_ID    = window.BOT_SITE_ID  || "unknown-site";
+  // ─── Config (Hardcoded specific Render URL fallback) ───────────────────────
+  // We explicitly hardcode the collect endpoint URL here instead of relying on auto-detect
+  var defaultApiUrl = "https://bot-detection-nilz.onrender.com/collect";
+
+  var API_URL    = window.BOT_API_URL  || defaultApiUrl;
+  var SITE_ID    = window.BOT_SITE_ID  || window.location.hostname; // Auto-detect website domain
   var BLOCK_PAGE = window.BOT_BLOCK_PAGE !== false; // default: true
   var ON_DETECT  = typeof window.BOT_ON_DETECT === "function" ? window.BOT_ON_DETECT : null;
   var ON_SAFE    = typeof window.BOT_ON_SAFE  === "function" ? window.BOT_ON_SAFE  : null;
 
   if (!API_URL) {
-    console.warn("[BotTracker] window.BOT_API_URL is not set. Tracker is disabled.");
+    console.warn("[BotTracker] Cannot detect API URL. Tracker is disabled.");
     return;
   }
 
