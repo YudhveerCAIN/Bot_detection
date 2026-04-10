@@ -118,37 +118,19 @@
     });
     events = [];                   // clear immediately (don't wait for response)
 
-    // Use sendBeacon if available for reliability on page unload, else fetch
-    var sent = false;
-    if (navigator.sendBeacon) {
-      var blob = new Blob([payload], { type: "application/json" });
-      sent = navigator.sendBeacon(API_URL, blob);
-    }
-
-    if (!sent) {
-      fetch(API_URL, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    payload
-      })
-      .then(function (res) { return res.json(); })
-      .then(handleResponse)
-      .catch(function (err) {
-        console.warn("[BotTracker] Send failed:", err);
-      });
-      return; // handleResponse will be called in the fetch chain
-    }
-
-    // sendBeacon doesn't return the response body — do a lightweight
-    // check-only fetch to get the prediction without resending events
-    fetch(API_URL.replace("/collect", "/debug/session/" + SESSION_ID))
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data && data.bot_probability !== undefined) {
-          handleResponse({ bot_probability: data.bot_probability, prediction: data.prediction === 1 ? "BOT" : "HUMAN" });
-        }
-      })
-      .catch(function () {}); // silent — sendBeacon already delivered
+    // Use fetch with keepalive for reliability on page unload
+    fetch(API_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    payload,
+      keepalive: true,        // reliable delivery when page unloads
+      credentials: "omit"     // Required to fix CORS wildcard '*' policy error
+    })
+    .then(function (res) { return res.json(); })
+    .then(handleResponse)
+    .catch(function (err) {
+      console.warn("[BotTracker] Send failed:", err);
+    });
   }
 
   function handleResponse(data) {
