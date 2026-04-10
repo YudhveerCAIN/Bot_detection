@@ -1,7 +1,9 @@
 // ===============================
 // Backend API URL (pulled from .env!)
 // ===============================
-const API_URL = import.meta.env.VITE_BOT_API_URL || "http://localhost:8000/collect";
+const _raw_url = import.meta.env.VITE_BOT_API_URL || "http://localhost:8000/collect";
+// Auto-fix if the user forgot to add /collect at the end of their .env URL
+const API_URL = _raw_url.endsWith("/collect") ? _raw_url : _raw_url.replace(/\/$/, "") + "/collect";
 
 // ===============================
 // Detect Site ID (Multi-Site Support)
@@ -90,13 +92,17 @@ setInterval(() => {
     headers: {
       "Content-Type": "application/json"
     },
+    credentials: "omit", // Required to fix CORS wildcard policy match
     body: JSON.stringify({
       site_id: SITE_ID,
       session_id: sessionId,
       events: events
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
+  })
   .then(data => {
     console.log("AI Model Response:", data);
     
