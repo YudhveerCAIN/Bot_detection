@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import API from "./api"; // your local axios instance pointing to localhost:8000
-import { ShieldAlert, ShieldCheck, Activity, Users, ChevronRight, XCircle } from "lucide-react";
+import { ShieldAlert, ShieldCheck, Activity, Users, ChevronRight, XCircle, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
@@ -8,6 +8,7 @@ export default function App() {
   const [overview, setOverview] = useState({});
   const [sites, setSites] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [probabilities, setProbabilities] = useState([]);
   const [selectedForensics, setSelectedForensics] = useState(null);
 
   // Poll exactly as before
@@ -17,10 +18,12 @@ export default function App() {
         API.get("/analytics/overview"),
         API.get("/analytics/sites"),
         API.get("/analytics/recent-detections"),
+        API.get("/analytics/bot-probabilities"),
       ]);
       setOverview(o.data);
       setSites(s.data);
       setRecent(r.data);
+      setProbabilities(p.data);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     }
@@ -34,6 +37,50 @@ export default function App() {
 
   const botRate = overview.bot_rate || 0;
   const isElevated = botRate > 15;
+
+  const exportToCSV = () => {
+    if (recent.length === 0) return;
+    
+    // Dynamically collect all possible behavioral feature keys
+    const featureKeys = new Set();
+    recent.forEach(sess => {
+      if (sess.features) {
+        Object.keys(sess.features).forEach(k => featureKeys.add(k));
+      }
+    });
+    const featureHeaders = Array.from(featureKeys);
+
+    const baseHeaders = ["Session ID", "Site ID", "Prediction", "Probability", "Event Count", "Tier"];
+    const headers = [...baseHeaders, ...featureHeaders];
+    const csvRows = [headers.join(",")];
+    
+    recent.forEach(sess => {
+      const row = [
+        sess.session_id,
+        sess.site_id,
+        sess.prediction === 1 ? "BOT" : "HUMAN",
+        sess.bot_probability.toFixed(4),
+        sess.event_count,
+        sess.confidence_tier
+      ];
+
+      // Append raw behavioral math
+      featureHeaders.forEach(fk => {
+        let val = sess.features && sess.features[fk] !== undefined ? sess.features[fk] : 0;
+        if (typeof val === 'number') val = val.toFixed(4).replace(/\.0+$/, '').replace(/(\.[0-9]+?)0+$/, '$1'); // precise clean floats
+        row.push(val);
+      });
+
+      csvRows.push(row.join(","));
+    });
+
+    const blob = new Blob([csvRows.join("\n")], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `bot_detections_${new Date().getTime()}.csv`);
+    a.click();
+  };
 
   return (
     <div className="min-h-screen p-6 md:p-10 font-sans tracking-tight relative overflow-x-hidden">
@@ -76,9 +123,15 @@ export default function App() {
         <div className="lg:col-span-2 space-y-8">
           <Card className="h-[450px] relative overflow-hidden flex flex-col">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex justify-between">
-                Live Interception Feed
-                <span className="text-xs font-normal px-2 py-1 bg-white/5 rounded text-muted-foreground">Updates 3s</span>
+              <CardTitle className="text-lg flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  Live Interception Feed
+                  <span className="text-xs font-normal px-2 py-1 bg-white/5 rounded text-muted-foreground">Updates 1s</span>
+                </div>
+                <button onClick={exportToCSV} className="p-2 bg-white/5 hover:bg-white/10 rounded border border-white/5 transition-colors flex items-center gap-2 text-xs font-medium text-white/80">
+                  <Download size={14} />
+                  Export CSV
+                </button>
               </CardTitle>
             </CardHeader>
             <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 custom-scrollbar">
@@ -138,13 +191,21 @@ export default function App() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg">AI Confidence Dist.</CardTitle>
             </CardHeader>
-            <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground text-sm text-center">
-               Bot Models dynamically threshold across your traffic. 
-               <br/><br/>
-               Overall Threat Rate: {botRate.toFixed(1)}%
+            <CardContent className="h-[200px] flex items-center justify-center p-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={probabilities} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <XAxis dataKey="_id" stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => {
+                    const ranges = {"0": "0-20%", "0.2": "20-40%", "0.4": "40-60%", "0.6": "60-80%", "0.8": "80-100%"};
+                    return ranges[val] || val;
+                  }} />
+                  <YAxis stroke="#52525B" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', color: '#fff' }} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>

@@ -89,8 +89,8 @@ MODEL_FEATURES = [
 session_buffers = {}
 WINDOW_SIZE = 20
 MAX_BUFFER_SIZE = 2000
-MIN_EVENTS_CRITICAL = 15
-MIN_EVENTS_STANDARD = 50
+MIN_EVENTS_CRITICAL = 12
+MIN_EVENTS_STANDARD = 35
 
 # -------------------------
 # Request Models

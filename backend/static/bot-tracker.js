@@ -47,9 +47,9 @@
   // ─── State ───────────────────────────────────────────────────────────────────
   var events    = [];
   var isBlocked = false;
-  var SEND_INTERVAL_MS  = 3000;
-  var MOUSE_THROTTLE_MS = 50;
-  var SCROLL_THROTTLE_MS = 100;
+  var SEND_INTERVAL_MS  = 1000;
+  var MOUSE_THROTTLE_MS = 25;
+  var SCROLL_THROTTLE_MS = 50;
   var lastMouseTime  = 0;
   var lastScrollTime = 0;
   var lastKeyTime    = null;
