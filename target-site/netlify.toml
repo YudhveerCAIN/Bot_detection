@@ -1,0 +1,14 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# VITE_BOT_API_URL must be set in Netlify dashboard → Site settings → Environment variables
+# e.g. VITE_BOT_API_URL = https://bot-detection-api.onrender.com/collect
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

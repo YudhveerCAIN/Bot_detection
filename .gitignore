@@ -1,0 +1,60 @@
+# ==============================================================================
+# Root .gitignore for AI Bot Detection Project
+# ==============================================================================
+
+# Node / JS / React (Frontend + Target Site)
+node_modules/
+dist/
+build/
+.npm
+.yarn
+
+# Python (Backend)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables
+# Keep env templates (.env.example), but ignore actual secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==============================================================================
+# IMPORTANT EXCEPTIONS
+# ==============================================================================
+# We NEED the trained model for Render to use it in production!
+!backend/model_v2.pkl
+
+# We NEED the rendered static tracking script for third-party embeds
+!backend/static/bot-tracker.js
