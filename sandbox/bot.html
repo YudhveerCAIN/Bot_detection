@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ShopSphere • Bot Attack Testbed</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,Segoe UI,Arial}
+body{background:#0e1320;color:#e6e9f2}
+header{position:fixed;top:0;width:100%;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:14px 28px;background:rgba(10,14,26,.7);backdrop-filter:blur(10px);border-bottom:1px solid #1c2340}
+.logo{font-weight:700;letter-spacing:.5px}
+nav a{margin-left:18px;color:#a9b2d6;text-decoration:none}
+nav a:hover{color:#00eaff}
+.container{max-width:1200px;margin:0 auto}
+section{padding:110px 20px 60px}
+.hero{min-height:90vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(800px 400px at 70% 20%,#1b2a6b,transparent),radial-gradient(600px 300px at 20% 80%,#3a1b6b,transparent)}
+.hero h1{font-size:52px}
+.hero p{opacity:.8;margin-top:10px}
+.btn{padding:12px 18px;border-radius:10px;border:1px solid #2a3566;background:#00eaff;color:#001;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{background:#121831;border:1px solid #1e2752;border-radius:14px;padding:16px;transition:.25s}
+.card:hover{transform:translateY(-6px)}
+.input{width:100%;padding:12px;border-radius:10px;border:1px solid #27306a;background:#0f1530;color:#e6e9f2}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.badge{padding:4px 8px;border-radius:999px;background:#1b234f;font-size:12px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px;border-bottom:1px solid #27306a;text-align:left}
+footer{padding:30px;text-align:center;border-top:1px solid #1c2340;background:#0b1024}
+.small{font-size:12px;opacity:.7}
+.notice{margin-top:10px;color:#9ad1ff}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">ShopSphere</div>
+  <nav>
+    <a href="#home">Home</a>
+    <a href="#products">Products</a>
+    <a href="#login">Login</a>
+    <a href="#checkout">Checkout</a>
+    <a href="#analytics">Analytics</a>
+  </nav>
+</header>
+
+<section id="home" class="hero">
+  <div class="container" style="text-align:center">
+    <h1>Premium Deals. Real Users.</h1>
+    <p>Built to look real. Instrumented to catch bots.</p>
+    <div style="margin-top:16px">
+      <button class="btn" onclick="scrollToId('products')">Browse Products</button>
+    </div>
+  </div>
+</section>
+
+<section id="products">
+  <div class="container">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2>Products</h2>
+      <div class="row">
+        <input id="search" class="input" placeholder="Search products..."/>
+        <button class="btn" id="searchBtn">Search</button>
+      </div>
+    </div>
+    <div id="productGrid" class="grid"></div>
+    <div class="small">Infinite scroll enabled • API-like calls simulated</div>
+  </div>
+</section>
+
+<section id="login">
+  <div class="container">
+    <h2>Account Login</h2>
+    <div class="card" style="max-width:420px">
+      <input id="username" class="input" placeholder="Email"/>
+      <input id="password" class="input" type="password" placeholder="Password"/>
+      <!-- Honeypot field (bots often fill hidden inputs) -->
+      <input id="hp_email" class="input hidden" placeholder="Do not fill"/>
+      <button id="submitBtn" class="btn">Sign In</button>
+      <div id="loginMsg" class="notice"></div>
+    </div>
+  </div>
+</section>
+
+<section id="checkout">
+  <div class="container">
+    <h2>Checkout</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Cart</h3>
+        <div id="cart"></div>
+      </div>
+      <div class="card">
+        <h3>Payment</h3>
+        <input id="card" class="input" placeholder="Card Number"/>
+        <input id="cvv" class="input" placeholder="CVV"/>
+        <input id="otp" class="input" placeholder="OTP"/>
+        <button class="btn" id="payBtn">Pay Now</button>
+        <div id="payMsg" class="notice"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="analytics">
+  <div class="container">
+    <h2>Detection Analytics</h2>
+    <table class="table">
+      <thead>
+        <tr><th>Session</th><th>Prob</th><th>Tier</th><th>Events</th><th>Verdict</th></tr>
+      </thead>
+      <tbody id="botTable"></tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div>© 2026 ShopSphere</div>
+  <div class="small">This page is intentionally instrumented for bot detection demos</div>
+</footer><script src="http://localhost:8000/static/bot-tracker.js" async></script>
+
+<script>
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+// ------------------- STATE -------------------
+let cartItems=[];
+let page=0;
+
+// ------------------- PRODUCTS (SIMULATED API) -------------------
+function fakeFetchProducts(q='',p=0){
+  const list=[];
+  for(let i=0;i<12;i++){
+    const id=p*12+i;
+    list.push({id,title:`Product #${id}`,price:(10+id%50)});
+  }
+  return new Promise(res=>setTimeout(()=>res(list.filter(x=>x.title.toLowerCase().includes(q.toLowerCase()))),400+Math.random()*400));
+}
+
+async function loadProducts(reset=false){
+  if(reset){page=0;document.getElementById('productGrid').innerHTML='';}
+  const q=document.getElementById('search').value||'';
+  const data=await fakeFetchProducts(q,page++);
+  const grid=document.getElementById('productGrid');
+  data.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='card';
+    el.innerHTML=`<div class='badge'>₹${p.price}</div><h3>${p.title}</h3><button class='btn' data-id='${p.id}'>Add</button>`;
+    el.querySelector('button').onclick=()=>addToCart(p);
+    grid.appendChild(el);
+  });
+}
+
+window.addEventListener('scroll',()=>{
+  if(window.innerHeight+window.scrollY>=document.body.offsetHeight-200){
+    loadProducts();
+  }
+});
+
+document.getElementById('searchBtn').onclick=()=>loadProducts(true);
+loadProducts(true);
+
+// ------------------- CART -------------------
+function addToCart(p){
+  cartItems.push(p);
+  renderCart();
+}
+function renderCart(){
+  const c=document.getElementById('cart');
+  c.innerHTML=cartItems.map(i=>`<div>${i.title} • ₹${i.price}</div>`).join('');
+}
+
+// ------------------- LOGIN (BOT TARGET) -------------------
+document.getElementById('submitBtn').onclick=async()=>{
+  document.getElementById('loginMsg').innerText='Submitting...';
+  await sleep(600);
+  document.getElementById('loginMsg').innerText='Submitted. Active monitoring in progress...';
+};
+
+// ------------------- CHECKOUT -------------------
+document.getElementById('payBtn').onclick=async()=>{
+  document.getElementById('payMsg').innerText='Processing payment...';
+  await sleep(600);
+  document.getElementById('payMsg').innerText='Payment submitted (demo)';
+};
+
+// ------------------- ANALYTICS -------------------
+async function fetchPredictions(){
+  try{
+    const res=await fetch('http://localhost:8000/analytics/recent-detections');
+    const data=await res.json();
+    const tb=document.getElementById('botTable');
+    tb.innerHTML='';
+    data.forEach(d=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${d.session_id||'-'}</td><td>${((d.bot_probability||0)*100).toFixed(1)}%</td><td>${d.confidence_tier||'-'}</td><td>${d.event_count||0}</td><td>${d.prediction==1?'🤖 BOT':'👤 HUMAN'}</td>`;
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
+setInterval(fetchPredictions, 1000);
+fetchPredictions();
+
+// ------------------- UTIL -------------------
+function scrollToId(id){document.getElementById(id).scrollIntoView({behavior:'smooth'});} 
+</script>
+</body>
+</html>

@@ -366,6 +366,9 @@
 </div>
 
 <!-- ═══ TRACKER INJECTION ═══ -->
+<!-- Production: loads bot-tracker.js from Render backend (hardcoded production API URL) -->
+<script src="https://bot-detection-nilz.onrender.com/static/bot-tracker.js" async></script>
+<!-- Local dev fallback (only active when served via Vite locally) -->
 <script type="module" src="/tracker.js"></script>
 
 <script>
